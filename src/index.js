@@ -43,9 +43,9 @@ const seq$ = cards$.take(5)
 seq$.zip(clicks$)
     .map(([[card, x], y]) => {
         if (x === y) {
-            return ['ok', card.name];
+            return card.name;
         } else {
-            throw ['game over', card.name];
+            throw 'game over: ' + card.name;
         }
     })
     .subscribe(
@@ -54,5 +54,8 @@ seq$.zip(clicks$)
         () => renderCard('#ddffdd')('win')
     );
 
-cards$.first().map(c => ['init', c.name]).subscribe(renderCard('white'));
+cards$.first()
+    .map(card => card.name)
+    .subscribe(renderCard('white'));
+
 reset$.subscribe(() => location.reload(false));
