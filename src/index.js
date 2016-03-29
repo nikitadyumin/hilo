@@ -22,33 +22,37 @@ function shuffle(deck) {
     return shuffled;
 }
 
-function render(card) {
-    console.log(card.name);
-}
+const render = el => color => text => {
+    const cardElement = document.createElement('div');
+    cardElement.style.backgroundColor = color;
+    cardElement.textContent = text;
+    el.appendChild(cardElement);
+};
+const renderCard = render(document.getElementById('cards'));
 
 const hi$ = Rx.Observable.fromEvent(document.getElementById('hi'), 'click').map(() => 'hi');
 const lo$ = Rx.Observable.fromEvent(document.getElementById('lo'), 'click').map(() => 'lo');
 const reset$ = Rx.Observable.fromEvent(document.getElementById('reset'), 'click');
-const clicks$ = hi$.merge(lo$);
+const clicks$ = hi$.merge(lo$).take(4);
 const cards$ = Rx.Observable.from(shuffle(deck));
 
-const seq$ = cards$.take(4)
+const seq$ = cards$.take(5)
     .pairwise()
     .map(([x, y]) => [y, x.value < y.value ? 'hi' : 'lo']);
 
 seq$.zip(clicks$)
     .map(([[card, x], y]) => {
         if (x === y) {
-            return card;
+            return ['ok', card.name];
         } else {
-            throw [card.name, 'game over'];
+            throw ['game over', card.name];
         }
     })
     .subscribe(
-        render,
-        v => console.warn(v),
-        v => console.info('win')
+        renderCard('white'),
+        renderCard('#ffdddd'),
+        () => renderCard('#ddffdd')('win')
     );
 
-cards$.first().subscribe(render);
+cards$.first().map(c => ['init', c.name]).subscribe(renderCard('white'));
 reset$.subscribe(() => location.reload(false));
