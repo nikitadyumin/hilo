@@ -33,36 +33,46 @@ const renderCard = render(document.getElementById('cards'));
 const hi$ = Rx.Observable.fromEvent(document.getElementById('hi'), 'click').map(() => 'hi');
 const lo$ = Rx.Observable.fromEvent(document.getElementById('lo'), 'click').map(() => 'lo');
 const reset$ = Rx.Observable.fromEvent(document.getElementById('reset'), 'click');
-const size$ = Rx.Observable.fromEvent(document.getElementById('size'), 'change')
+const $size = document.getElementById('size');
+const size$ = Rx.Observable.fromEvent($size, 'change')
     .map(e => e.target.value)
-    .startWith(3);
+    .startWith($size.value);
 
 size$.flatMapLatest(size => {
     const clicks$ = hi$.merge(lo$);
     document.getElementById('cards').innerHTML = '';
-    console.log(size);
     const cards$ = Rx.Observable.from(shuffle(deck));
 
     cards$.first()
         .map(card => card.name)
         .subscribe(renderCard('white'));
-
     return cards$.take(size)
         .pairwise()
         .map(([x, y]) => [y, x.value < y.value ? 'hi' : 'lo'])
-        .zip(clicks$.take(size - 1));
-}).map(([[card, x], y]) => {
-    console.log(card, x, y);
-        if (x === y) {
-            return card.name;
-        } else {
-            throw 'game over: ' + card.name;
-        }
-    })
+        .zip(clicks$)
+        .scan(([left, _msg], msg) => [left - 1, msg], [size - 1])
+        .map(([index, [[card, x], y]]) => {
+            if (x === y) {
+                return index === 0 ? ['win', card.name] : ['next', card.name];
+            } else {
+                return ['lose', 'game over: ' + card.name];
+            }
+        })
+})
     .subscribe(
-        renderCard('white'),
-        renderCard('#ffdddd'),
-        () => renderCard('#ddffdd')('win')
+        ([type, data]) => {
+            switch (type) {
+                case 'next':
+                    renderCard('white')(data);
+                    break;
+                case 'win':
+                    renderCard('#ddffdd')(data);
+                    break;
+                case 'lose':
+                    renderCard('#ffdddd')(data);
+                    break;
+            }
+        }
     );
 
 reset$.subscribe(() => location.reload(false));

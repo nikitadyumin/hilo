@@ -78,20 +78,35 @@
 	const hi$ = Rx.Observable.fromEvent(document.getElementById('hi'), 'click').map(() => 'hi');
 	const lo$ = Rx.Observable.fromEvent(document.getElementById('lo'), 'click').map(() => 'lo');
 	const reset$ = Rx.Observable.fromEvent(document.getElementById('reset'), 'click');
-	const clicks$ = hi$.merge(lo$).take(4);
-	const cards$ = Rx.Observable.from(shuffle(deck));
+	const $size = document.getElementById('size');
+	const size$ = Rx.Observable.fromEvent($size, 'change').map(e => e.target.value).startWith($size.value);
 
-	const seq$ = cards$.take(5).pairwise().map(([x, y]) => [y, x.value < y.value ? 'hi' : 'lo']);
+	size$.flatMapLatest(size => {
+	    const clicks$ = hi$.merge(lo$);
+	    document.getElementById('cards').innerHTML = '';
+	    const cards$ = Rx.Observable.from(shuffle(deck));
 
-	seq$.zip(clicks$).map(([[card, x], y]) => {
-	    if (x === y) {
-	        return card.name;
-	    } else {
-	        throw 'game over: ' + card.name;
+	    cards$.first().map(card => card.name).subscribe(renderCard('white'));
+	    return cards$.take(size).pairwise().map(([x, y]) => [y, x.value < y.value ? 'hi' : 'lo']).zip(clicks$).scan(([left, _msg], msg) => [left - 1, msg], [size - 1]).map(([index, [[card, x], y]]) => {
+	        if (x === y) {
+	            return index === 0 ? ['win', card.name] : ['next', card.name];
+	        } else {
+	            return ['lose', 'game over: ' + card.name];
+	        }
+	    });
+	}).subscribe(([type, data]) => {
+	    switch (type) {
+	        case 'next':
+	            renderCard('white')(data);
+	            break;
+	        case 'win':
+	            renderCard('#ddffdd')(data);
+	            break;
+	        case 'lose':
+	            renderCard('#ffdddd')(data);
+	            break;
 	    }
-	}).subscribe(renderCard('white'), renderCard('#ffdddd'), () => renderCard('#ddffdd')('win'));
-
-	cards$.first().map(card => card.name).subscribe(renderCard('white'));
+	});
 
 	reset$.subscribe(() => location.reload(false));
 
