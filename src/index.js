@@ -39,26 +39,26 @@ const size$ = Rx.Observable.fromEvent($size, 'change')
     .startWith($size.value);
 
 size$.flatMapLatest(size => {
-    const clicks$ = hi$.merge(lo$);
-    document.getElementById('cards').innerHTML = '';
-    const cards$ = Rx.Observable.from(shuffle(deck));
+        document.getElementById('cards').innerHTML = '';
+        const clicks$ = hi$.merge(lo$);
+        const cards$ = Rx.Observable.from(shuffle(deck));
 
-    cards$.first()
-        .map(card => card.name)
-        .subscribe(renderCard('white'));
-    return cards$.take(size)
-        .pairwise()
-        .map(([x, y]) => [y, x.value < y.value ? 'hi' : 'lo'])
-        .zip(clicks$)
-        .scan(([left, _msg], msg) => [left - 1, msg], [size - 1])
-        .map(([index, [[card, x], y]]) => {
-            if (x === y) {
-                return index === 0 ? ['win', card.name] : ['next', card.name];
-            } else {
-                return ['lose', 'game over: ' + card.name];
-            }
-        })
-})
+        cards$.first()
+            .map(card => card.name)
+            .subscribe(renderCard('white'));
+        return cards$.take(size)
+            .pairwise()
+            .map(([x, y]) => [y, x.value < y.value ? 'hi' : 'lo'])
+            .zip(clicks$)
+            .scan(([left, _msg], msg) => [left - 1, msg], [size - 1])
+            .map(([index, [[{name}, x], y]]) => {
+                if (x === y) {
+                    return index === 0 ? ['win', name] : ['next', name];
+                } else {
+                    return ['lose', 'game over: ' + name];
+                }
+            });
+    })
     .subscribe(
         ([type, data]) => {
             switch (type) {
